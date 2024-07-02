@@ -1,23 +1,19 @@
 import os
-
 import shutil
 from typing import Callable
 
-from pyquery import PyQuery
 import click
-
 import tomli
 from jinja2 import Environment, FileSystemLoader, Template
+from pyquery import PyQuery
 
 STRINGS_PATH = "strings.toml"
+IGNORE = ".simpleignore"
 
-# Return types
 type Localizations = dict[str, dict[str, str]]
+type RenderFunction = Callable[[Template, str], str]
 type Links = list[tuple[str, str]]
-
-# Callable types
-type RenderTemplate = Callable[[Template, str], str]
-type Autolink = Callable[[str], Links]
+type AutolinkFunction = Callable[[str], Links]
 
 
 def extension(filename: str) -> str:
@@ -101,9 +97,9 @@ def configure_autolink(
     origin_template_dir: str,
     locale: str,
     templates: list[Template],
-    render_locale: RenderTemplate,
+    render_locale: RenderFunction,
     output_dir: str,
-) -> Autolink:
+) -> AutolinkFunction:
     """
     :param origin_template_dir: Directory of the template the configured function will be called in
     :param locale: Locale the template is being rendered with
@@ -146,7 +142,7 @@ def configure_renderer(
     templates: list[Template],
     source_dir: str,
     output_dir: str,
-) -> RenderTemplate:
+) -> RenderFunction:
     """
     :param localizations: Localizations
     :param templates: List of all Templates
@@ -194,36 +190,50 @@ def simplesitesystem():
 
 
 @simplesitesystem.command()
-@click.argument("source_dir")
-@click.argument("output_dir")
-def build(source_dir: str, output_dir: str) -> None:
+@click.argument(
+    "source_dir", type=click.Path(file_okay=False, dir_okay=True, exists=True)
+)
+@click.argument(
+    "output_dir", type=click.Path(file_okay=False, dir_okay=True, writable=True)
+)
+@click.option("--no-symlink-assets", default=False, is_flag=True)
+def build(source_dir: str, output_dir: str, no_symlink_assets: bool) -> None:
     env: Environment = Environment(
         loader=FileSystemLoader(source_dir), trim_blocks=True, lstrip_blocks=True
     )
 
+    # Look for file containing newline separated template names to exclude
+    ignore: list[str] = []
+    try:
+        with open(IGNORE, "r") as f:
+            ignore = [p.strip() for p in f.readlines()]
+            print("Excluding:", ", ".join(ignore))
+    except FileNotFoundError:
+        print(f"{IGNORE} not found.")
+
     # Delete contents of output directory, if it exists
     shutil.rmtree(os.path.join(output_dir, "."), ignore_errors=True)
 
+    print("Loading templates...")
     templates: list[Template] = [
-        env.get_template(path) for path in env.list_templates(extensions="jinja")
+        env.get_template(path) for path in env.list_templates(extensions="jinja") if path not in ignore
     ]
 
     if os.path.isfile(STRINGS_PATH):
         localizations: Localizations = read_localizations(STRINGS_PATH)
 
-        primary_locale: str = next(iter(localizations.keys()))  # en
-        primary_locale_dir: str = os.path.join(
-            output_dir, primary_locale
-        )  # output/en
-
-        render_template: RenderTemplate = configure_renderer(
+        render_template: RenderFunction = configure_renderer(
             localizations, templates, source_dir, output_dir
         )
 
+        primary_locale: str = next(iter(localizations))  # en
+        primary_locale_dir: str = os.path.join(output_dir, primary_locale)  # output/en
+
         for locale in localizations:
+            print(f"Rendering locale {locale}...")
             locale_dir: str = os.path.join(output_dir, locale)  # output/jp
 
-            if locale == primary_locale:
+            if locale == primary_locale or no_symlink_assets:
                 shutil.copytree(
                     source_dir,
                     locale_dir,
@@ -242,5 +252,5 @@ def build(source_dir: str, output_dir: str) -> None:
                 render_template(template, locale)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     simplesitesystem()
