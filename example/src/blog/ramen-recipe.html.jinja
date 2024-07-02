@@ -1,0 +1,22 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ strings.ramen_recipe_title }}{% endblock %}
+{% block description %}In this blog post, I describe my perfected ramen recipe.{% endblock description %}
+
+{% block body %}
+    <h1>{{ strings.my_string_key }}</h1>
+
+    <figure>
+        <img src="../img/catpicture.jpg" alt="A picture of a cat" style="width: 30%">
+        <figcaption>
+            A <a href="https://www.flickr.com/photos/hisashiv/8087663733/">photo</a>
+            by <a href="https://www.flickr.com/photos/hisashiv/">Hisashi</a>
+            under the <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC BY-SA 2.0</a> license.
+        </figcaption>
+    </figure>
+
+    <p>
+        Step 1: The beef.<br>
+        Step 2: The noodles.
+    </p>
+{% endblock %}

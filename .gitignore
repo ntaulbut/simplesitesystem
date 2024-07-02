@@ -1,0 +1,13 @@
+# Venv
+.venv/
+
+# Output of this tool
+output/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Personal IDEA settings
+.idea/workspace.xml

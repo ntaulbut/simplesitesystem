@@ -1,0 +1,9 @@
+[en]
+my_string_key = "Welcome to my shop!"
+ramen_recipe_title = "My Ramen Recipe"
+homepage = "Homepage"
+
+[jp]
+my_string_key = "いらっしゃいませ!"
+ramen_recipe_title = "私のラーメンレシピ"
+homepage = "トップページ"

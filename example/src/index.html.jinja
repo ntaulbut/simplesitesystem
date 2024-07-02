@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ strings.homepage }}</title>
+</head>
+<body>
+    <h1>{{ strings.homepage }}</h1>
+    <ul>
+    {% for url, title, description in autolink("blog") %}
+        <li>
+            <a href="{{ url }}">{{ title }}</a>: {{ description }}
+        </li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
