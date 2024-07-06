@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "Click",
+        "click", "tomli", "jinja2", "pyquery", "pygments"
     ],
     entry_points={
         "console_scripts": [

@@ -6,12 +6,12 @@ import click
 import tomli
 from jinja2 import Environment, FileSystemLoader, Template
 from pyquery import PyQuery
+from pygments.formatters import HtmlFormatter
+from simplesitesystem.code_extension import CodeExtension
 
-STRINGS_PATH = "strings.toml"
 IGNORE = ".simpleignore"
 
 type Localizations = dict[str, dict[str, str]]
-type RenderFunction = Callable[[Template, str], str]
 type Links = list[tuple[str, str]]
 type AutolinkFunction = Callable[[str], Links]
 
@@ -24,27 +24,12 @@ def extension(filename: str) -> str:
     return os.path.splitext(filename)[1]
 
 
-def strip_extension(filename: str) -> str:
+def strip_exts(filename: str) -> str:
     """
     :param filename: index.html.jinja
-    :return: index.html
+    :return: index
     """
-    return os.path.splitext(filename)[0]
-
-
-def localized_output_path(
-    filepath: str, locale: str, source_dir: str, output_dir: str
-) -> str:
-    """
-    :param filepath: src/blog/test.html.jinja
-    :param locale: en
-    :param source_dir: src/
-    :param output_dir: output/
-    :return: /output/en/blog/ramen-recipe.html
-    """
-    return strip_extension(
-        os.path.join(output_dir, locale, os.path.relpath(filepath, source_dir))
-    )
+    return filename.split(os.extsep)[0]
 
 
 def read_localizations(path: str) -> Localizations:
@@ -59,76 +44,78 @@ def read_localizations(path: str) -> Localizations:
 
 
 def assets(source_dir: str) -> list[str]:
-    for directory, _, filenames in os.walk(source_dir):
+    for directory, subdirectories, filenames in os.walk(source_dir):
         for filename in filenames:
             if extension(filename) != ".jinja":
                 yield os.path.join(directory, filename)
 
 
-def symlink(filepath: str, locale_dir: str, primary_locale_dir: str) -> None:
+def symlink(asset_filepath: str, locale_dir: str, first_locale_dir: str) -> None:
     """
     Creates a relative symlink from `output/jp/img/catpicture.jpg` to `output/en/img/catpicture.jpg`.
     e.g. ../../en/img/catpicture.jpg.
 
-    :param filepath: img/catpicture.jpg
+    :param asset_filepath: img/catpicture.jpg
     :param locale_dir: output/jp/
-    :param primary_locale_dir: output/en/
+    :param first_locale_dir: output/en/
     """
     # output/jp/img/catpicture.jpg
-    output_filepath = os.path.join(locale_dir, filepath)
+    new_filepath = os.path.join(locale_dir, asset_filepath)
     # output/en/img/catpicture.jpg
-    primary_filepath = os.path.join(primary_locale_dir, filepath)
+    existing_filepath = os.path.join(first_locale_dir, asset_filepath)
     # output/jp/img/
-    output_file_dir = os.path.dirname(output_filepath)
+    new_file_dir = os.path.dirname(new_filepath)
     # output/en/img/
-    primary_file_dir = os.path.dirname(primary_filepath)
+    existing_file_dir = os.path.dirname(existing_filepath)
 
-    os.makedirs(output_file_dir, exist_ok=True)
+    os.makedirs(new_file_dir, exist_ok=True)
     os.symlink(
         os.path.join(
-            os.path.relpath(primary_file_dir, output_file_dir),
-            os.path.basename(filepath),
+            os.path.relpath(existing_file_dir, new_file_dir),
+            os.path.basename(asset_filepath),
         ),
-        output_filepath,
+        new_filepath,
     )
 
 
-def configure_autolink(
-    origin_template_dir: str,
+def get_autolink(
+    in_template_dir: str,
+    in_page_path: str,
     locale: str,
     templates: list[Template],
-    render_locale: RenderFunction,
-    output_dir: str,
+    render: Callable,
 ) -> AutolinkFunction:
     """
-    :param origin_template_dir: Directory of the template the configured function will be called in
+    :param in_page_path:
+    :param in_template_dir:
     :param locale: Locale the template is being rendered with
     :param templates: List of all Templates
-    :param render_locale: This function needs to request a template be rendered,
+    :param render: This function needs to request a template be rendered,
     so it can extract info from the result, like the page title
-    :param output_dir: output/
     :return: Autolink function
     """
 
-    def autolink(requested_directory: str) -> Links:
+    def autolink(path: str) -> Links:
         """
-        :param requested_directory: This is relative to the directory of the template this function is called in
-        :return: Links to and other information about templates in the requested directory.
+        :param path: Path to link pages from, relative to the calling template.
+        :return: Links to and other information about pages in the requested path.
         """
-        # output/en/blog
-        output_directory = os.path.join(origin_template_dir, requested_directory)
-        # output/en
-        locale_directory = os.path.join(output_dir, locale)
-        # blog
-        relative_directory = os.path.relpath(output_directory, locale_directory)
+        qualified_path: str = os.path.join(in_template_dir, path)
 
-        for template in templates:
-            template_dirname = os.path.dirname(template.name)
-            if template_dirname == relative_directory:
-                rendered_template: str = render_locale(template, locale)
-                url: str = os.path.relpath(rendered_template, origin_template_dir)
+        for target in templates:
+            target_dirname = os.path.dirname(target.name)
+            if target_dirname == qualified_path:
+                target_page: str = render(target, locale)
 
-                document: PyQuery = PyQuery(filename=rendered_template)
+                url: str = os.path.join(
+                    os.path.relpath(
+                        os.path.dirname(target_page),
+                        os.path.dirname(in_page_path),
+                    ),
+                    os.path.basename(target_page),
+                )
+
+                document: PyQuery = PyQuery(filename=target_page)
                 title: str = document("head title").text()
                 description: str = document("meta[name='description']").attr("content")
 
@@ -137,51 +124,52 @@ def configure_autolink(
     return autolink
 
 
-def configure_renderer(
-    localizations: Localizations,
-    templates: list[Template],
-    source_dir: str,
-    output_dir: str,
-) -> RenderFunction:
+def code_style(style: str):
+    return HtmlFormatter(style=style).get_style_defs(".highlight")
+
+
+def get_renderer(templates: list[Template], output_dir: str, localizations=None) -> Callable:
     """
     :param localizations: Localizations
     :param templates: List of all Templates
-    :param source_dir: src/
     :param output_dir: output/
     :return: RenderLocale function
     """
-    rendered: list[str] = []
+    if localizations is None:
+        localizations = {}
+    pages: list[str] = []
 
-    def render_template(template: Template, locale: str) -> str:
+    def render(template: Template, locale: str = "") -> str:
         """
         :param locale: Locale to render template with, e.g. en
         :param template: Template to render
         :return: Path the template was written to
         """
-        rendered_path: str = localized_output_path(
-            template.filename, locale, source_dir, output_dir
+        page_path: str = (
+            strip_exts(os.path.join(output_dir, locale, template.name)) + ".html"
         )
-        rendered_dir: str = os.path.dirname(rendered_path)
-        os.makedirs(rendered_dir, exist_ok=True)
-        if rendered_path in rendered:
-            return rendered_path  # Don't render twice
-        with open(rendered_path, "w") as f:
-            f.write(
-                template.render(
-                    autolink=configure_autolink(
-                        rendered_dir,
-                        locale,
-                        templates,
-                        render_template,
-                        rendered_dir,
-                    ),
-                    strings=localizations[locale],
+        page_dir: str = os.path.dirname(page_path)
+        os.makedirs(page_dir, exist_ok=True)
+        if page_path not in pages:
+            with open(page_path, "w") as f:
+                f.write(
+                    template.render(
+                        autolink=get_autolink(
+                            os.path.dirname(template.name),
+                            page_path,
+                            locale,
+                            templates,
+                            render,
+                        ),
+                        strings=localizations[locale] if locale else None,
+                        locale=locale,
+                        code_style=code_style,
+                    )
                 )
-            )
-            rendered.append(rendered_path)
-            return rendered_path
+            pages.append(page_path)
+        return page_path
 
-    return render_template
+    return render
 
 
 @click.group()
@@ -196,13 +184,29 @@ def simplesitesystem():
 @click.argument(
     "output_dir", type=click.Path(file_okay=False, dir_okay=True, writable=True)
 )
+@click.option(
+    "-s",
+    "--strings",
+    "strings_file",
+    default="strings.toml",
+    type=click.Path(file_okay=True, dir_okay=False, exists=True),
+    help="Translations file.",
+)
 @click.option("--no-symlink-assets", default=False, is_flag=True)
-def build(source_dir: str, output_dir: str, no_symlink_assets: bool) -> None:
+def build(
+    source_dir: str,
+    output_dir: str,
+    strings_file: str,
+    no_symlink_assets: bool,
+) -> None:
     env: Environment = Environment(
-        loader=FileSystemLoader(source_dir), trim_blocks=True, lstrip_blocks=True
+        loader=FileSystemLoader(source_dir),
+        extensions=[CodeExtension],
+        trim_blocks=True,
+        lstrip_blocks=True,
     )
 
-    # Look for file containing newline separated template names to exclude
+    # Look for file containing newline-separated template names to exclude
     ignore: list[str] = []
     try:
         with open(IGNORE, "r") as f:
@@ -216,41 +220,57 @@ def build(source_dir: str, output_dir: str, no_symlink_assets: bool) -> None:
 
     print("Loading templates...")
     templates: list[Template] = [
-        env.get_template(path) for path in env.list_templates(extensions="jinja") if path not in ignore
+        env.get_template(path)
+        for path in env.list_templates(extensions="jinja")
+        if path not in ignore
     ]
 
-    if os.path.isfile(STRINGS_PATH):
-        localizations: Localizations = read_localizations(STRINGS_PATH)
-
-        render_template: RenderFunction = configure_renderer(
-            localizations, templates, source_dir, output_dir
+    if strings_file is None:
+        print("Rendering...")
+        render: Callable = get_renderer(templates, output_dir)
+        shutil.copytree(
+            source_dir,
+            output_dir,
+            ignore=shutil.ignore_patterns("*.jinja"),
+            dirs_exist_ok=True,
         )
+        for template in templates:
+            render(template)
+        return
 
-        primary_locale: str = next(iter(localizations))  # en
-        primary_locale_dir: str = os.path.join(output_dir, primary_locale)  # output/en
+    localizations: Localizations = read_localizations(strings_file)
+    if len(localizations) == 0:
+        print("No localizations in strings file.")
+        return
+    render: Callable = get_renderer(templates, output_dir, localizations)
+    first_locale: str = next(iter(localizations))  # en
+    first_locale_dir: str = os.path.join(output_dir, first_locale)  # output/en
 
-        for locale in localizations:
-            print(f"Rendering locale {locale}...")
-            locale_dir: str = os.path.join(output_dir, locale)  # output/jp
+    for locale in localizations:
+        print(f"Rendering locale {locale}...")
+        locale_dir: str = os.path.join(output_dir, locale)  # output/jp
 
-            if locale == primary_locale or no_symlink_assets:
-                shutil.copytree(
-                    source_dir,
+        if locale == first_locale or no_symlink_assets:
+            shutil.copytree(
+                source_dir,
+                locale_dir,
+                ignore=shutil.ignore_patterns("*.jinja"),
+                dirs_exist_ok=True,
+            )
+        else:
+            for filepath in assets(source_dir):
+                symlink(
+                    os.path.relpath(filepath, source_dir),
                     locale_dir,
-                    ignore=shutil.ignore_patterns("*.jinja"),
-                    dirs_exist_ok=True,
+                    first_locale_dir,
                 )
-            else:
-                for filepath in assets(source_dir):
-                    symlink(
-                        os.path.relpath(filepath, source_dir),
-                        locale_dir,
-                        primary_locale_dir,
-                    )
 
-            for template in templates:
-                render_template(template, locale)
+        for template in templates:
+            render(template, locale)
 
+
+# A rendered template is a page
+# Non-template files in the source directory are assets
 
 if __name__ == "__main__":
     simplesitesystem()

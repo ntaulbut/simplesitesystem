@@ -1,4 +1,6 @@
-jinja2
-tomli
-click
-pyquery
+jinja2~=3.1.4
+tomli~=2.0.1
+click~=8.1.7
+pyquery~=2.0.0
+setuptools~=70.2.0
+Pygments~=2.18.0
