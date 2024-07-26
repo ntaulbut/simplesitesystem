@@ -1,11 +1,11 @@
 from jinja2 import nodes
 from jinja2.ext import Extension, Markup
 from pygments import highlight
-from pygments.lexers import get_lexer_by_name, guess_lexer
+from pygments.lexers import guess_lexer
 from pygments.formatters import HtmlFormatter
 
 
-class CodeExtension(Extension):
+class CodeBlockExtension(Extension):
     tags = {"code"}
 
     def parse(self, parser):
@@ -23,7 +23,9 @@ class CodeExtension(Extension):
 
         body = parser.parse_statements(("name:endcode",), drop_needle=True)
 
-        return nodes.CallBlock(self.call_method("_highlight"), [], [], body).set_lineno(lineno)
+        return nodes.CallBlock(self.call_method("_highlight"), [], [], body).set_lineno(
+            lineno
+        )
 
     # noinspection PyMethodMayBeStatic
     def _highlight(self, caller):
@@ -31,4 +33,3 @@ class CodeExtension(Extension):
         markup = Markup(body)
 
         return highlight(markup, guess_lexer(markup), HtmlFormatter())
-

@@ -4,3 +4,5 @@ click~=8.1.7
 pyquery~=2.0.0
 setuptools~=70.2.0
 Pygments~=2.18.0
+aiohttp[speedups]~=3.9.5
+watchdog~=4.0.1
