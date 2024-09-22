@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "simplesitesystem"
+version = "0.0.1"
+dependencies = [
+    "click", "tomli", "jinja2", "pyquery", "pygments", "watchdog"
+]
+
+[project.scripts]
+simple = "simplesitesystem.main:simplesitesystem"

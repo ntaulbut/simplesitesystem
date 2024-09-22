@@ -1,6 +1,6 @@
 import click
 
-from commands import build, dev
+from simplesitesystem.commands import build, dev
 
 
 @click.group()

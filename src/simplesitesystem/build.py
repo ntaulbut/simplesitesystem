@@ -36,8 +36,8 @@ def build_internal(
     output_dir: str,
     strings_file: str,
     data_file: str,
-    no_symlink_assets: bool = False,
-    dev_mode: bool = False,
+    no_symlink_assets: bool,
+    dev_mode: bool,
 ) -> None:
     jinja_env: Environment = Environment(
         loader=FileSystemLoader(source_dir),
@@ -79,7 +79,7 @@ def build_internal(
 
     # If no localizations are provided
     if strings_file is None:
-        render: Callable = get_renderer(templates, output_dir, data=data)
+        render: Callable = get_renderer(templates, output_dir, dev_mode, data=data)
         shutil.copytree(
             source_dir,
             output_dir,
@@ -126,7 +126,7 @@ def build_internal(
 
 
 def get_renderer(
-    templates: list[Template], output_dir: str, dev_mode: bool = False, **kwargs
+    templates: list[Template], output_dir: str, dev_mode: bool, **kwargs
 ) -> Callable:
     """
     :param dev_mode:
