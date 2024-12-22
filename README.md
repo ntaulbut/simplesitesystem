@@ -1,4 +1,14 @@
 # Simple Site System
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Automatic Linking
+## Link all templates in a folder
+Use `autolink("[Directory Name]")` to get a tuple with the url, the title (`<title>`), and the description (`<meta name="description">`), of each page in the directory.
+```jinja
+<ul>
+{% for url, title, description in autolink("blog") %}
+    <li>
+        <a href="{{ url }}">{{ title }}</a>: {{ description }}
+    </li>
+{% endfor %}
+</ul>
+```
