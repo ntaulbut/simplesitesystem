@@ -16,6 +16,7 @@ def get_uid_generator() -> UidGenerator:
     n: int = 0
 
     def get_uid() -> str:
+        nonlocal n
         n += 1
         return f"uid-{n}"
 

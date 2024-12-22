@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name = "simplesitesystem"
 license = { file = "LICENSE" }
-version = "0.1.0"
+version = "0.1.1"
 requires-python = ">=3.13"
 dependencies = [
     "click",
