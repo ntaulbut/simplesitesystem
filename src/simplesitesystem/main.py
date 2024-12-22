@@ -4,9 +4,9 @@ from simplesitesystem.commands import build, dev
 
 
 @click.group()
+@click.version_option()
 def simplesitesystem():
     pass
-
 
 # noinspection PyTypeChecker
 simplesitesystem.add_command(build)
