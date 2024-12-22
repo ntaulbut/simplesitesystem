@@ -11,3 +11,5 @@ build/
 
 # Personal IDEA settings
 .idea/workspace.xml
+
+**/__pycache__
