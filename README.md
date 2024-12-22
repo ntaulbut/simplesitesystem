@@ -13,7 +13,30 @@ Use `autolink("[Directory Name]")` to get a tuple with the url, the title (`<tit
 </ul>
 ```
 
+## Localisation
+`simple build -s strings.toml src dist`
+
+```toml
+[en]
+ramen_recipe_title = "My Ramen Recipe"
+
+[jp]
+ramen_recipe_title = "私のラーメンレシピ"
+```
+```jinja
+<head>
+    <title>{{ locale }}: {{ strings.ramen_recipe_title }}</title>
+</head>
+```
+
 ## Code highlighting
+```jinja
+<head>
+    <style>
+    {{ code_style("one-dark") }}
+    </style>
+</head>
+```
 ```jinja
 <p>
 {% code "python" %}
@@ -22,11 +45,4 @@ def main():
 {% endcode %}
 </p>
 ```
-### Setup
-```jinja
-<head>
-    <style>
-    {{ code_style("one-dark") }}
-    </style>
-</head>
-```
+
