@@ -12,3 +12,21 @@ Use `autolink("[Directory Name]")` to get a tuple with the url, the title (`<tit
 {% endfor %}
 </ul>
 ```
+
+## Code highlighting
+```jinja
+<p>
+{% code "python" %}
+def main():
+    print("Hello, world")
+{% endcode %}
+</p>
+```
+### Setup
+```jinja
+<head>
+    <style>
+    {{ code_style("one-dark") }}
+    </style>
+</head>
+```
