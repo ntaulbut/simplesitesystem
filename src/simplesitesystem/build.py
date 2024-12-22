@@ -7,7 +7,7 @@ import tomli
 from jinja2 import Environment, FileSystemLoader, Template
 
 from simplesitesystem.extensions import CodeBlockExtension
-from simplesitesystem.template_functions import get_autolink, code_style
+from simplesitesystem.template_functions import get_autolink, code_style, get_uid_generator
 from simplesitesystem.tools import extension, strip_exts
 
 type Localizations = dict[str, dict[str, str]]
@@ -137,6 +137,7 @@ def get_renderer(
     localizations = kwargs.get("localizations", {})
     data = kwargs.get("data", {})
     pages: list[str] = []
+    uid_generator = get_uid_generator()
 
     def render(template: Template, locale: str = "") -> str:
         """
@@ -161,6 +162,7 @@ def get_renderer(
                             render,
                             dev_mode,
                         ),
+                        get_uid=uid_generator,
                         strings=localizations[locale] if locale else None,
                         locale=locale,
                         data=data,

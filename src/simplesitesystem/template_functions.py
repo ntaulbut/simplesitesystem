@@ -9,6 +9,17 @@ from simplesitesystem.tools import strip_exts
 
 type Links = list[tuple[str, str]]
 type AutolinkFunction = Callable[[str], Links]
+type UidGenerator = Callable[[], str]
+
+
+def get_uid_generator() -> UidGenerator:
+    n: int = 0
+
+    def get_uid() -> str:
+        n += 1
+        return f"uid-{n}"
+
+    return get_uid
 
 
 def get_autolink(
