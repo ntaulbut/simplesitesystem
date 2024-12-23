@@ -41,7 +41,7 @@ def build_internal(
 ) -> None:
     jinja_env: Environment = Environment(
         loader=FileSystemLoader(source_dir),
-        extensions=[CodeBlockExtension],
+        extensions=[CodeBlockExtension, "jinja2.ext.do"],
         trim_blocks=True,
         lstrip_blocks=True,
     )
