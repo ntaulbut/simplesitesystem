@@ -4,7 +4,12 @@ from jinja2 import Template
 from pygments.formatters.html import HtmlFormatter
 from pyquery import PyQuery
 
-from simplesitesystem.project_types import AutolinkFunction, RenderFunction, UidGenerator, Links
+from simplesitesystem.project_types import (
+    AutolinkFunction,
+    RenderFunction,
+    UidGenerator,
+    Links,
+)
 from simplesitesystem.tools import strip_exts
 
 

@@ -6,7 +6,7 @@ import tomli
 from jinja2 import Environment, FileSystemLoader, Template
 
 from simplesitesystem.project_types import RenderFunction, Localizations
-from simplesitesystem.extensions import CodeBlockExtension
+from simplesitesystem.template_extensions import CodeBlockExtension
 from simplesitesystem.template_functions import (
     get_autolink,
     code_style,
@@ -71,7 +71,7 @@ def build_internal(
     ]
 
     # Load the data file if it exists
-    data = None
+    data = {}
     if data_file:
         with open(data_file) as f:
             data = json.load(f)
@@ -81,7 +81,7 @@ def build_internal(
 
     # If no localizations are provided
     if strings_file is None:
-        render = get_renderer(templates, output_dir, dev_mode, data=data)
+        render = get_renderer(templates, output_dir, dev_mode, {}, data)
         shutil.copytree(
             source_dir,
             output_dir,
@@ -89,16 +89,14 @@ def build_internal(
             dirs_exist_ok=True,
         )
         for template in templates:
-            render(template)
+            render(template, "")
         return
 
     localizations: Localizations = read_localizations(strings_file)
     if len(localizations) == 0:
         print("No localizations in strings file.")
         return
-    render = get_renderer(
-        templates, output_dir, dev_mode, localizations=localizations
-    )
+    render = get_renderer(templates, output_dir, dev_mode, localizations, data)
     first_locale: str = next(iter(localizations))  # en
     first_locale_dir: str = os.path.join(output_dir, first_locale)  # output/en
 
@@ -128,22 +126,26 @@ def build_internal(
 
 
 def get_renderer(
-    templates: list[Template], output_dir: str, dev_mode: bool, **kwargs
+    templates: list[Template],
+    output_dir: str,
+    dev_mode: bool,
+    localizations: Localizations,
+    data: dict,
 ) -> RenderFunction:
     """
+    :param data:
+    :param localizations:
     :param dev_mode:
     :param templates: List of all Templates
     :param output_dir: output/
     :return: Render function
     """
-    localizations = kwargs.get("localizations", {})
-    data = kwargs.get("data", {})
     rendered_paths: list[str] = []
     uid_generator = get_uid_generator()
 
-    def render(template: Template, locale: str = "") -> str:
+    def render(template: Template, locale: str) -> str:
         """
-        :param locale: Locale to render template with, e.g. en
+        :param locale: Locale to render template with, e.g. en (or empty string for none)
         :param template: Template to render
         :return: Path the template was written to (or would've been written to)
         """
@@ -152,7 +154,6 @@ def get_renderer(
         )
         if page_path in rendered_paths:
             return page_path
-        page_dir: str = os.path.dirname(page_path)
 
         autolink = get_autolink(
             os.path.dirname(template.name),
@@ -172,7 +173,7 @@ def get_renderer(
             dev_script=DEV_SCRIPT if dev_mode else "",
         )
 
-        os.makedirs(page_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(page_path), exist_ok=True)
         with open(page_path, "w") as f:
             f.write(page)
 
