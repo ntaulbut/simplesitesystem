@@ -1,11 +1,11 @@
 import json
 import os
 import shutil
-from typing import Callable
 
 import tomli
 from jinja2 import Environment, FileSystemLoader, Template
 
+from simplesitesystem.project_types import RenderFunction, Localizations
 from simplesitesystem.extensions import CodeBlockExtension
 from simplesitesystem.template_functions import (
     get_autolink,
@@ -13,8 +13,6 @@ from simplesitesystem.template_functions import (
     get_uid_generator,
 )
 from simplesitesystem.tools import extension, strip_exts
-
-type Localizations = dict[str, dict[str, str]]
 
 IGNORE = ".simpleignore"
 DEV_SCRIPT = """<script>
@@ -83,7 +81,7 @@ def build_internal(
 
     # If no localizations are provided
     if strings_file is None:
-        render: Callable = get_renderer(templates, output_dir, dev_mode, data=data)
+        render = get_renderer(templates, output_dir, dev_mode, data=data)
         shutil.copytree(
             source_dir,
             output_dir,
@@ -98,7 +96,7 @@ def build_internal(
     if len(localizations) == 0:
         print("No localizations in strings file.")
         return
-    render: Callable = get_renderer(
+    render = get_renderer(
         templates, output_dir, dev_mode, localizations=localizations
     )
     first_locale: str = next(iter(localizations))  # en
@@ -119,7 +117,7 @@ def build_internal(
             )
         else:
             for filepath in assets(source_dir):
-                symlink(
+                symlink_asset(
                     os.path.relpath(filepath, source_dir),
                     locale_dir,
                     first_locale_dir,
@@ -131,12 +129,12 @@ def build_internal(
 
 def get_renderer(
     templates: list[Template], output_dir: str, dev_mode: bool, **kwargs
-) -> Callable:
+) -> RenderFunction:
     """
     :param dev_mode:
     :param templates: List of all Templates
     :param output_dir: output/
-    :return: RenderLocale function
+    :return: Render function
     """
     localizations = kwargs.get("localizations", {})
     data = kwargs.get("data", {})
@@ -184,7 +182,7 @@ def get_renderer(
     return render
 
 
-def symlink(asset_filepath: str, locale_dir: str, first_locale_dir: str) -> None:
+def symlink_asset(asset_filepath: str, locale_dir: str, first_locale_dir: str) -> None:
     """
     Creates a relative symlink from `output/jp/img/catpicture.jpg` to `output/en/img/catpicture.jpg`.
     e.g. ../../en/img/catpicture.jpg.

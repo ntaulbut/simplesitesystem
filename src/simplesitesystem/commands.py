@@ -1,6 +1,7 @@
+from os.path import join
+
 import click
 from aiohttp import web
-from os.path import join
 
 from simplesitesystem.build import build_internal
 from simplesitesystem.dev_server import create_websocket_handler

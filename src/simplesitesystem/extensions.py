@@ -1,6 +1,7 @@
 from jinja2 import nodes
 from jinja2.ext import Extension
 from markupsafe import Markup
+
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter

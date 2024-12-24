@@ -1,15 +1,11 @@
 from os.path import *
-from typing import Callable
 
 from jinja2 import Template
 from pygments.formatters.html import HtmlFormatter
 from pyquery import PyQuery
 
+from simplesitesystem.project_types import AutolinkFunction, RenderFunction, UidGenerator, Links
 from simplesitesystem.tools import strip_exts
-
-type Links = list[tuple[str, str]]
-type AutolinkFunction = Callable[[str], Links]
-type UidGenerator = Callable[[], str]
 
 
 def get_uid_generator() -> UidGenerator:
@@ -28,7 +24,7 @@ def get_autolink(
     in_page_path: str,
     locale: str,
     templates: list[Template],
-    render: Callable,
+    render: RenderFunction,
     dev_mode: bool,
 ) -> AutolinkFunction:
     """

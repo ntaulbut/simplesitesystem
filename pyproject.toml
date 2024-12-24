@@ -16,6 +16,7 @@ dependencies = [
     "pyquery",
     "pygments",
     "watchdog",
+    "markupsafe"
 ]
 
 [project.scripts]
