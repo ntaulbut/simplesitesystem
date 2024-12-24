@@ -13,9 +13,9 @@ class CodeBlockExtension(Extension):
         lineno = next(parser.stream).lineno
         arg = parser.parse_expression()
         body = parser.parse_statements(("name:endcode",), drop_needle=True)
-        return nodes.CallBlock(self.call_method("_highlight", [arg]), [], [], body).set_lineno(
-            lineno
-        )
+        return nodes.CallBlock(
+            self.call_method("_highlight", [arg]), [], [], body
+        ).set_lineno(lineno)
 
     # noinspection PyMethodMayBeStatic
     def _highlight(self, lexer_alias, caller):

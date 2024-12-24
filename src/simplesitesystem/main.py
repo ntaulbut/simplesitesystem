@@ -8,6 +8,7 @@ from simplesitesystem.commands import build, dev
 def simplesitesystem():
     pass
 
+
 # noinspection PyTypeChecker
 simplesitesystem.add_command(build)
 # noinspection PyTypeChecker

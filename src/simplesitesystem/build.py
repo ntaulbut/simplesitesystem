@@ -7,7 +7,11 @@ import tomli
 from jinja2 import Environment, FileSystemLoader, Template
 
 from simplesitesystem.extensions import CodeBlockExtension
-from simplesitesystem.template_functions import get_autolink, code_style, get_uid_generator
+from simplesitesystem.template_functions import (
+    get_autolink,
+    code_style,
+    get_uid_generator,
+)
 from simplesitesystem.tools import extension, strip_exts
 
 type Localizations = dict[str, dict[str, str]]
@@ -136,42 +140,45 @@ def get_renderer(
     """
     localizations = kwargs.get("localizations", {})
     data = kwargs.get("data", {})
-    pages: list[str] = []
+    rendered_paths: list[str] = []
     uid_generator = get_uid_generator()
 
     def render(template: Template, locale: str = "") -> str:
         """
         :param locale: Locale to render template with, e.g. en
         :param template: Template to render
-        :return: Path the template was written to
+        :return: Path the template was written to (or would've been written to)
         """
         page_path: str = (
             strip_exts(os.path.join(output_dir, locale, template.name)) + ".html"
         )
+        if page_path in rendered_paths:
+            return page_path
         page_dir: str = os.path.dirname(page_path)
-        os.makedirs(page_dir, exist_ok=True)
-        if page_path not in pages:
-            with open(page_path, "w") as f:
-                f.write(
-                    template.render(
-                        autolink=get_autolink(
-                            os.path.dirname(template.name),
-                            page_path,
-                            locale,
-                            templates,
-                            render,
-                            dev_mode,
-                        ),
-                        get_uid=uid_generator,
-                        strings=localizations[locale] if locale else None,
-                        locale=locale,
-                        data=data,
-                        code_style=code_style,
-                        dev_script=DEV_SCRIPT if dev_mode else "",
-                    )
-                )
-            pages.append(page_path)
 
+        autolink = get_autolink(
+            os.path.dirname(template.name),
+            page_path,
+            locale,
+            templates,
+            render,
+            dev_mode,
+        )
+        page = template.render(
+            autolink=autolink,
+            get_uid=uid_generator,
+            strings=localizations[locale] if locale else None,
+            locale=locale,
+            data=data,
+            code_style=code_style,
+            dev_script=DEV_SCRIPT if dev_mode else "",
+        )
+
+        os.makedirs(page_dir, exist_ok=True)
+        with open(page_path, "w") as f:
+            f.write(page)
+
+        rendered_paths.append(page_path)
         return page_path
 
     return render
